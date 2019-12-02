@@ -1,0 +1,42 @@
+{
+  "variables": {
+    "systemd_unit_name": "cloud-sql-proxy.service",
+    "project_id": "",
+    "zone": ""
+  },
+  "builders": [
+    {
+      "type": "googlecompute",
+      "project_id": "{{user `project_id`}}",
+      "zone": "{{user `zone`}}",
+      "disk_type": "pd-ssd",
+      "image_name": "cloudsqlproxyclient-{{isotime \"20060102030405\" | clean_resource_name}}",
+      "image_description": "Debian 9 with Cloud SQL Proxy and MariaDB client",
+      "image_family": "cloudsqlproxy-client",
+      "network": "default",
+      "source_image_family": "debian-9",
+      "source_image_project_id": "debian-cloud",
+      "ssh_username": "packer"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "files/{{user `systemd_unit_name`}}",
+      "destination": "/tmp/{{user `systemd_unit_name`}}"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O /usr/local/bin/cloud_sql_proxy",
+        "sudo chmod +x /usr/local/bin/cloud_sql_proxy",
+        "sudo mv /tmp/{{user `systemd_unit_name`}} /etc/systemd/system/",
+        "sudo chmod 0644 /etc/systemd/system/{{user `systemd_unit_name`}}",
+        "sudo chown root:root /etc/systemd/system/{{user `systemd_unit_name`}}",
+        "sudo systemctl daemon-reload",
+        "sudo systemctl enable {{user `systemd_unit_name`}}",
+        "sudo apt-get install -y mysql-client"
+      ]
+    }
+  ]
+}
