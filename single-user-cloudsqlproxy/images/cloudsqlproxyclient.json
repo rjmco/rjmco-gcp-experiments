@@ -28,13 +28,28 @@
     {
       "type": "shell",
       "inline": [
+        "curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh",
+        "curl -sSO https://dl.google.com/cloudagents/install-monitoring-agent.sh",
+        "sudo bash install-logging-agent.sh",
+        "sudo bash install-monitoring-agent.sh",
+        "rm install-logging-agent.sh install-monitoring-agent.sh"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": [
         "sudo wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O /usr/local/bin/cloud_sql_proxy",
         "sudo chmod +x /usr/local/bin/cloud_sql_proxy",
         "sudo mv /tmp/{{user `systemd_unit_name`}} /etc/systemd/system/",
         "sudo chmod 0644 /etc/systemd/system/{{user `systemd_unit_name`}}",
         "sudo chown root:root /etc/systemd/system/{{user `systemd_unit_name`}}",
         "sudo systemctl daemon-reload",
-        "sudo systemctl enable {{user `systemd_unit_name`}}",
+        "sudo systemctl enable {{user `systemd_unit_name`}}"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": [
         "sudo apt-get install -y mysql-client"
       ]
     }
