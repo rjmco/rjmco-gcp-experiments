@@ -1,4 +1,5 @@
 single-user-cloudsqlproxy/local_vars.json
+local.tfvars
 
 ### macOS template
 # General
