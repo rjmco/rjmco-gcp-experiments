@@ -14,6 +14,12 @@ variable "region" {
   type    = string
 }
 
+variable "route_tag" {
+  description = "Network tag name associated with the Internet Egress route"
+  default     = "t-internet-egress-access"
+  type        = string
+}
+
 variable "static_nat_ips" {
   default = []
   type    = list(string)

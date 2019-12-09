@@ -42,6 +42,5 @@ resource "google_compute_route" "internet_route" {
   dest_range       = "0.0.0.0/0"
   network          = var.vpc
   next_hop_gateway = "default-internet-gateway"
-  tags             = ["t-internet-egress-access"] # TODO: Make variable
+  tags             = [var.route_tag]
 }
-

@@ -7,14 +7,14 @@ module "internet-cloud-nat" {
     google = google
   }
 
-  dynamic_nat_ips_count = var.dynamic_nat_ips_count
-  project               = var.project
-  region                = var.region
-  route_tag             = var.route_tag
-  subnet                = google_compute_subnetwork.client-subnet.self_link
-  vpc                   = google_compute_network.vpc.self_link
-  uniq_id               = var.uniq_id
-  zone                  = var.zone
+  project        = var.project
+  region         = var.region
+  route_tag      = "t-internet-egress-custom-tag"
+  static_nat_ips = google_compute_address.nat_ip[*].self_link
+  subnet         = google_compute_subnetwork.client-subnet.self_link
+  vpc            = google_compute_network.vpc.self_link
+  uniq_id        = var.uniq_id
+  zone           = var.zone
 }
 
 /////
@@ -47,7 +47,7 @@ resource "google_compute_instance" "internet_client" { # TODO: Comment this reso
   }
   tags = [
     join("", module.internet-cloud-nat.route_tag),
-    "t-allow-iap-ingress-ssh",
+    "t-allow-iap-ingress-ssh"
   ]
 }
 
@@ -61,3 +61,9 @@ resource "google_compute_firewall" "allow_iap_ingress_ssh" {
   target_tags = ["t-allow-iap-ingress-ssh"]
 }
 
+resource "google_compute_address" "nat_ip" {
+  count        = 1
+  name         = format("%s-%s%d", var.uniq_id, "res-ext-nat-ip", count.index)
+  address_type = "EXTERNAL"
+  region       = var.region
+}

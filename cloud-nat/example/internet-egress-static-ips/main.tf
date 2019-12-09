@@ -45,7 +45,7 @@ resource "google_compute_instance" "internet_client" { # TODO: Comment this reso
     subnetwork = google_compute_subnetwork.client-subnet.self_link
   }
   tags = [
-    "t-internet-egress-access", # TODO: Needs to be an output
+    join("", module.internet-cloud-nat.route_tag),
     "t-allow-iap-ingress-ssh"
   ]
 }
