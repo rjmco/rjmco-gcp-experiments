@@ -10,7 +10,6 @@ module "internet-cloud-nat" {
   dynamic_nat_ips_count = var.dynamic_nat_ips_count
   project               = var.project
   region                = var.region
-  static_nat_ips        = var.static_nat_ips
   subnet                = google_compute_subnetwork.client-subnet.self_link
   vpc                   = google_compute_network.vpc.self_link
   uniq_id               = var.uniq_id
@@ -18,7 +17,7 @@ module "internet-cloud-nat" {
 }
 
 /////
-// Auxiliar resources
+// Auxiliar resources; required for the examples to work
 /////
 resource "google_compute_network" "vpc" {
   name                            = format("%s-%s", var.uniq_id, "vpc")
@@ -60,4 +59,3 @@ resource "google_compute_firewall" "allow_iap_ingress_ssh" {
   }
   target_tags = ["t-allow-iap-ingress-ssh"]
 }
-

@@ -1,10 +1,5 @@
 # TODO: Add descriptions to all variables
 
-variable "dynamic_nat_ips_count" {
-  default = 1
-  type    = number
-}
-
 variable "project" {
   type = string
 }
@@ -14,9 +9,10 @@ variable "region" {
   type    = string
 }
 
-variable "static_nat_ips" {
-  default = []
-  type    = list(string)
+variable "static_nat_ips_count" {
+  default     = 1
+  description = "Number of IPs to reserve to pass along to the module as static IPs."
+  type        = number
 }
 
 variable "uniq_id" {
