@@ -5,6 +5,18 @@ variable "dynamic_nat_ips_count" {
   type    = number
 }
 
+variable "log_config" {
+  default = {
+    enable = true
+    filter = "ALL"
+  }
+  description = "NAT router's logging configuration"
+  type = object({
+    enable = bool
+    filter = string
+  })
+}
+
 variable "project" { # TODO: Remove from module
   type = string
 }

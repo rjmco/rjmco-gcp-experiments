@@ -32,8 +32,8 @@ resource "google_compute_router_nat" "nat0" {
     source_ip_ranges_to_nat = ["ALL_IP_RANGES"] # TODO: Log known limitation which may need to be improved for GKE subnets
   }
   log_config {
-    enable = true  # TODO: Make variable
-    filter = "ALL" # TODO: Make variable
+    enable = var.log_config.enable
+    filter = var.log_config.filter
   }
 }
 
