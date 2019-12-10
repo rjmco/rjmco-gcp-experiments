@@ -7,14 +7,13 @@ module "internet-cloud-nat" {
     google = google
   }
 
-  dynamic_nat_ips_count = var.dynamic_nat_ips_count
-  project               = var.project
-  region                = var.region
-  route_tag             = var.route_tag
-  subnet                = google_compute_subnetwork.client-subnet.self_link
-  vpc                   = google_compute_network.vpc.self_link
-  uniq_id               = var.uniq_id
-  zone                  = var.zone
+  nat_ip_allocate_option = "AUTO_ONLY"
+  project                = var.project
+  region                 = var.region
+  subnet                 = google_compute_subnetwork.client-subnet.self_link
+  vpc                    = google_compute_network.vpc.self_link
+  uniq_id                = var.uniq_id
+  zone                   = var.zone
 }
 
 /////
@@ -60,4 +59,3 @@ resource "google_compute_firewall" "allow_iap_ingress_ssh" {
   }
   target_tags = ["t-allow-iap-ingress-ssh"]
 }
-

@@ -1,10 +1,5 @@
 # TODO: Add descriptions to all variables
 
-variable "dynamic_nat_ips_count" {
-  default = 1
-  type    = number
-}
-
 variable "log_config" {
   default = {
     enable = true
@@ -15,6 +10,11 @@ variable "log_config" {
     enable = bool
     filter = string
   })
+}
+
+variable "nat_ip_allocate_option" {
+  default = "MANUAL_ONLY"
+  type    = string
 }
 
 variable "project" { # TODO: Remove from module
