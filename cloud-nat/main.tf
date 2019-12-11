@@ -10,7 +10,7 @@ resource "google_compute_router" "internet_router" {
 
 resource "google_compute_router_nat" "nat0" {
   name                               = format("%s-%s", var.uniq_id, "internet-nat")
-  nat_ip_allocate_option             = var.nat_ip_allocate_option
+  nat_ip_allocate_option             = "MANUAL_ONLY" # TODO: add compliance reference
   router                             = google_compute_router.internet_router.name
   source_subnetwork_ip_ranges_to_nat = "LIST_OF_SUBNETWORKS" # TODO: Add compliance reference
 
@@ -19,7 +19,7 @@ resource "google_compute_router_nat" "nat0" {
     filter = var.log_config.filter
   }
   min_ports_per_vm = 57344 # TODO: add compliance reference
-  nat_ips          = var.nat_ip_allocate_option == "AUTO_ONLY" ? null : var.static_nat_ips
+  nat_ips          = var.static_nat_ips
   subnetwork { # TODO: Add compliance reference
     name                    = var.subnet
     source_ip_ranges_to_nat = ["PRIMARY_IP_RANGE"] # Limited by approved use case

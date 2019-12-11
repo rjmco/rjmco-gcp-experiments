@@ -12,11 +12,6 @@ variable "log_config" {
   })
 }
 
-variable "nat_ip_allocate_option" {
-  default = "MANUAL_ONLY"
-  type    = string
-}
-
 variable "project" { # TODO: Remove from module
   type = string
 }
@@ -33,8 +28,7 @@ variable "route_tag" {
 }
 
 variable "static_nat_ips" {
-  default = []
-  type    = list(string)
+  type = list(string)
 }
 
 variable "subnet" {
