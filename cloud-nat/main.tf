@@ -14,16 +14,18 @@ resource "google_compute_router_nat" "nat0" {
   router                             = google_compute_router.internet_router.name
   source_subnetwork_ip_ranges_to_nat = "LIST_OF_SUBNETWORKS" # TODO: Add compliance reference
 
-  min_ports_per_vm = 57344 # TODO: add compliance reference
-  nat_ips          = var.nat_ip_allocate_option == "AUTO_ONLY" ? null : var.static_nat_ips
-  subnetwork { # TODO: Add compliance reference
-    name                    = var.subnet
-    source_ip_ranges_to_nat = ["ALL_IP_RANGES"] # TODO: Log known limitation which may need to be improved for GKE subnets
-  }
   log_config {
     enable = var.log_config.enable
     filter = var.log_config.filter
   }
+  min_ports_per_vm = 57344 # TODO: add compliance reference
+  nat_ips          = var.nat_ip_allocate_option == "AUTO_ONLY" ? null : var.static_nat_ips
+  subnetwork { # TODO: Add compliance reference
+    name                    = var.subnet
+    source_ip_ranges_to_nat = ["PRIMARY_IP_RANGE"] # Limited by approved use case
+  }
+  tcp_established_idle_timeout_sec = 30 # TODO: add compliance reference
+  tcp_transitory_idle_timeout_sec  = 30 # TODO: add compliance reference
 }
 
 resource "google_compute_route" "internet_route" {
