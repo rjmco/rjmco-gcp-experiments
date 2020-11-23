@@ -5,10 +5,10 @@ I've created the Terraform code contained on this folder.
 
 You will find the following sections:
 - Description of the Test Scenario;
-- Steps to deploy and reproduce the connection error;
-- Discussion of the probable reason behind the network connectivity issue.
+- Steps to deploy and test the connection to K8s' master endpoint;
+- Future work
 
-## Test scenario
+## Test Scenario
 
 To enable testing, the following infrastructure is deployed:
 
@@ -23,82 +23,96 @@ can send IP packets to the Kubernetes master endpoint.
 
 The testing scenario is as follows:
 1. Connect to the local test VM `i0` and successfully run a `kubectl get all` command;
-2. Connect to the remote test VM `i1` and attempt to run a `kubectl get all` command which returns an `i/o timeout`
-error.
+2. Connect to the remote test VM `i1` and attempt to run a `kubectl get all` command;
 
-## Steps to Deploy and Reproduce the issue
+## Requirements
 
-1. Set the project ID and unique ID environment variables (replacing `MY-PROJECT` first):
+Software:
+* Terraform `>= 0.12`
+* Google Cloud SDK
+
+Cloud resources:
+* A GCP project linked to a billing account with Compute and Container APIs enabled;
+* Compute and Container Administrator roles on the project.
+
+## Steps to Deploy and Reproduce the Test
+
+* Set the project ID and unique ID environment variables (replacing `MY-PROJECT` first):
+
 ```shell script
 export project_id="MY-PROJECT"
+export region="europe-west2"
 export unique_id="ug23"
 ```
 
-1. Deploy the cluster and dependent resources:
+* If not already done, setup application default authentication with Google Cloud SDK as follows:
+
+```shell script
+gcloud auth application-default login
+```
+
+* Deploy the cluster and dependent resources:
+
 ```shell script
 terraform init
-terraform apply -var project_id=${project_id} -var unique_id=${unique_id}
+terraform apply -var project_id=${project_id} -var region=${region} -var unique_id=${unique_id}
 ```
 
-1. Connect to the local test VM (i0-...)
+* Fetch the VPC peering connection name and update it to export custom routes as follows:
 
-1. Setup its environment and list Kubernetes resources:
 ```shell script
-export project_id=$(curl -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/project/project-id)
-export unique_id=$(curl -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/attributes/unique-id)
-gcloud --project ${project_id} container clusters get-credentials cluster-${unique_id} --region europe-west2
+export network_name="$(gcloud --project ${project_id} container clusters describe cluster-${unique_id} --region ${region} --format='value(networkConfig.network.basename())')"
+export peering_name="$(gcloud --project ${project_id} container clusters describe cluster-${unique_id} --region ${region} --format='value(privateClusterConfig.peeringName)')"
+gcloud --project ${project_id} compute networks peerings update ${peering_name} --network ${network_name} --export-custom-routes
+```
+
+* Connect to the local test VM (i0-...)
+
+* Setup its environment and list Kubernetes resources:
+
+```shell script
+export project_id="$(curl -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/project/project-id)"
+export unique_id="$(curl -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/attributes/unique-id)"
+export zone="$(basename $(curl -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/zone))"
+export region="${zone:0:${#zone}-2}"
+gcloud --project ${project_id} container clusters get-credentials cluster-${unique_id} --region ${region}
 kubectl get all
 ```
 
-1. Exit the local test VM (i0-...) and connect to the remote test VM (i1-...):
+* Exit the local test VM (i0-...) and connect to the remote test VM (i1-...):
 
-1. Setup its environment and list Kubernetes resources:
+* Setup its environment and list Kubernetes resources:
+
 ```shell script
-export project_id=$(curl -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/project/project-id)
-export unique_id=$(curl -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/attributes/unique-id)
-gcloud --project ${project_id} container clusters get-credentials cluster-${unique_id} --region europe-west2
+export project_id="$(curl -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/project/project-id)"
+export unique_id="$(curl -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/attributes/unique-id)"
+export zone="$(basename $(curl -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/zone))"
+export region="${zone:0:${#zone}-2}"
+gcloud --project ${project_id} container clusters get-credentials cluster-${unique_id} --region ${region}
 kubectl get all
 ```
 
-**Notice that the last command will fail to reach the Kubernetes API (i.e. the GKE master endpoint) even though the
-custom route exists to transit traffic through the VPN tunnels and the cluster master authorized networks allows
-requests from the remote-subnetwork's CIDR IP range.**
+* Exit the remote test VM and destroy the test environment:
 
-Here's an example of the error returned:
-```
-Unable to connect to the server: dial tcp 192.168.12.2:443: i/o timeout
-```
-
-1. Exit the remote test VM and destroy the test environment:
 ```shell script
-exit
-terraform destroy -var project_id=${project_id} -var unique_id=${unique_id}
+terraform destroy -var project_id=${project_id} -var region=${region} -var unique_id=${unique_id}
+unset project_id region unique_id
 ```
 
-## Discussion
+* If necessary, revoke application default authentication as follows:
 
-The VPC-native GKE deployment automatically creates a VPC peering connections between the local VPC network called `n0`
-and a VPC network automatically created by GCP to host the Kubernetes master nodes on tenant project fully managed by
-GCP.
+```shell script
+gcloud auth application-default revoke
+```
 
-A VPC network peering connection can only be successfully established if both projects (the customer project and
-the tenant project) have a peering connection resource configured referencing each other's VPC networks'. Only when
-these references match the VPC network peering connection is successfully established and routes between the two VPC
-networks are exchanged between themselves. During the VPC-native GKE cluster deployment both peering connection objects
-are created by the Kubernetes API service agent with well defined parameters.
- 
-When a VPC network peering connection is established, all subnet routes for both VPC networks are exchanged between the
-two peered networks by default and peered subnet routes (from other peered VPC networks) are not exchanged. This
-behaviour cannot be changed. Custom routes (which include both static and dynamic routes) are not exchanged by default.
-Custom routes from one VPC network, lets call it `vpc-a`, call only be exchanged with its peered VPC network, lets call
-it `vpc-b` if `vpc-a` has the `export custom routes` feature enabled on its peering connection resource and `vpc-b` has
-the `import custom routes` feature enabled on its peering connection resource.
- 
-Looking at the [Kubernetes Engine API reference](https://cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters#Cluster) 
-it appears that there isn't a parameter to change the import/export custom routes parameter of the peering, and this is
-why the IP packets from `i1` VM never reach the Kubernetes endpoint.
+## Future work
+
+Use `compute_network_peering_routes_config` terraform to enable `export custom routes` as exemplified on
+https://github.com/hashicorp/terraform-provider-google/issues/4778#issuecomment-653267555 instead of using `gcloud`
+t commands.
 
 ## More information
 
 * [Importing and exporting Routes](https://cloud.google.com/vpc/docs/vpc-peering#importing-exporting-routes)
 * [Route types](https://cloud.google.com/vpc/docs/routes#types_of_routes)
+* [google_container_cluster resource reference](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/container_cluster)
